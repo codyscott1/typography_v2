@@ -28,7 +28,7 @@ const stripName = (name) =>
     .replace(/mobile|desktop/gi, "")
     .toLowerCase();
 
-const getFontStyles = (font, isDesktop) => {
+const getFontStyles = (font, isDesktop = false) => {
   const breakpointModifier = isDesktop ? "sm:" : "";
   return `${breakpointModifier}text-${font.name
     .replace(/[^a-zA-Z0-9]/g, "-")
@@ -91,20 +91,17 @@ figma.ui.onmessage = async (msg) => {
       );
 
       const result = mobileFonts.map((font) => {
-        const matchingDesktopFont = savedTextStyles.find((foobar) =>
-          stripName(font.name).includes(stripName(foobar.name))
+        const matchingDesktopFont = savedTextStyles.find(({ name }) =>
+          stripName(font.name).includes(stripName(name))
         );
 
-        const title = removeLeadingTrailingCharacters(
-          font.name
-            .replace(/mobile|desktop/gi, "")
-            .replace(/[^a-zA-Z0-9]/g, "-")
-        ).toLowerCase();
+        const getTitle = (font) =>
+          removeLeadingTrailingCharacters(stripName(font.name));
 
-        return `.${title}: {@apply ${getFontStyles(font)} ${getFontStyles(
-          matchingDesktopFont,
-          true
-        )}}`;
+        return `.${getTitle(font)}: {@apply ${getFontStyles(
+          font,
+          false
+        )} ${getFontStyles(matchingDesktopFont, true)}}`;
       });
 
       return result.join("<br/>");
@@ -122,7 +119,7 @@ figma.ui.onmessage = async (msg) => {
 
     figma.showUI(
       __html__ +
-        JSON.stringify(result?.config, null, "") +
+        JSON.stringify(result?.config, null, "\t") +
         "<br/><br/><br/>" +
         JSON.stringify(result?.css, null, "<br/>"),
       {
