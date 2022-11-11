@@ -11,6 +11,32 @@ figma.showUI(__html__, { width: 1000, height: 1000 });
 // Calls to "parent.postMessage" from within the HTML page will trigger this
 // callback. The callback will be passed the "pluginMessage" property of the
 // posted message.
+const removeLeadingTrailingCharacters = (str) => {
+  const specialCharacters = ["-", "_", "/", " "];
+  if (specialCharacters.includes(str[0])) {
+    return str.substring(1);
+  }
+  if (specialCharacters.includes(str[str.length - 1])) {
+    return str.substring(0, str.length - 1);
+  }
+  return str.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+};
+
+const stripName = (name) =>
+  name
+    .replace(/[^a-zA-Z0-9]/g, "-")
+    .replace(/mobile|desktop/gi, "")
+    .toLowerCase();
+
+const getFontStyles = (font, isDesktop) => {
+  const breakpointModifier = isDesktop ? "sm:" : "";
+  return `${breakpointModifier}text-${font.name
+    .replace(/[^a-zA-Z0-9]/g, "-")
+    .toLowerCase()} ${breakpointModifier}font-${font.fontName.style.toLowerCase()} ${breakpointModifier}font-${stripName(
+    font.fontName.family
+  )}`;
+};
+
 figma.ui.onmessage = async (msg) => {
   // One way of distinguishing between different types of messages sent from
   // your HTML page is to use an object with a "type" property like this.
@@ -65,27 +91,9 @@ figma.ui.onmessage = async (msg) => {
       );
 
       const result = mobileFonts.map((font) => {
-        const stripName = (name) =>
-          name
-            .replace(/[^a-zA-Z0-9]/g, "-")
-            .replace(/mobile|desktop/gi, "")
-            .toLowerCase();
-
         const matchingDesktopFont = savedTextStyles.find((foobar) =>
           stripName(font.name).includes(stripName(foobar.name))
         );
-
-        const removeLeadingTrailingCharacters = (str) => {
-          console.log({ str });
-          const specialCharacters = ["-", "_", "/", " "];
-          if (specialCharacters.includes(str[0])) {
-            return str.substring(1);
-          }
-          if (specialCharacters.includes(str[str.length - 1])) {
-            return str.substring(0, str.length - 1);
-          }
-          return str.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
-        };
 
         const title = removeLeadingTrailingCharacters(
           font.name
@@ -93,13 +101,10 @@ figma.ui.onmessage = async (msg) => {
             .replace(/[^a-zA-Z0-9]/g, "-")
         ).toLowerCase();
 
-        console.log({ title });
-
-        return `.${title}: {@apply text-${font.name
-          .replace(/[^a-zA-Z0-9]/g, "-")
-          .toLowerCase()} sm:text-${matchingDesktopFont.name
-          .replace(/[^a-zA-Z0-9]/g, "-")
-          .toLowerCase()}}`;
+        return `.${title}: {@apply ${getFontStyles(font)} ${getFontStyles(
+          matchingDesktopFont,
+          true
+        )}}`;
       });
 
       return result.join("<br/>");
@@ -114,8 +119,6 @@ figma.ui.onmessage = async (msg) => {
             css: { "typography.css": mapTypographyConfig() },
           }
         : mapCSSOutput();
-
-    console.log(result);
 
     figma.showUI(
       __html__ +
